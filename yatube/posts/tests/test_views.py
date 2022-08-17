@@ -340,18 +340,9 @@ class CachePagesTests(TestCase):
         super().setUpClass()
         cls.guest_client = Client()
         cls.author = User.objects.create_user(username='auth')
-        cls.author_client = Client()
-        cls.author_client.force_login(cls.author)
 
     def setUp(self) -> None:
         cache.clear()
-        self.posts_count = 15
-        self.posts = Post.objects.bulk_create([
-            Post(
-                text=f'Тест №{i}',
-                author=CachePagesTests.author,
-            ) for i in range(self.posts_count)
-        ])
 
     def test_index_new_post_not_in_cache(self) -> None:
         """
@@ -374,39 +365,6 @@ class CachePagesTests(TestCase):
             reverse('posts:index')
         )
         self.assertContains(response_with_new_cache, new_post)
-
-    def test_index_edited_post_on_second_page_not_in_cache(self) -> None:
-        """
-        When editing a post on the second page of the index page after a
-        request to this page, the change will not be displayed.
-        """
-        page_number = 2
-
-        CachePagesTests.guest_client.get(
-            reverse('posts:index'),
-            {'page': page_number}
-        )
-
-        CachePagesTests.author_client.post(
-            reverse(
-                'posts:post_edit',
-                kwargs={'post_id': Post.objects.latest('id').id}
-            ),
-            data={'text': 'UPDATED'}
-        )
-        new_response = CachePagesTests.guest_client.get(
-            reverse('posts:index'),
-            {'page': page_number}
-        )
-        self.assertNotContains(new_response, Post.objects.latest('id'))
-
-        cache.clear()
-
-        response_with_new_cache = CachePagesTests.guest_client.get(
-            reverse('posts:index'),
-            {'page': page_number}
-        )
-        self.assertContains(response_with_new_cache, Post.objects.latest('id'))
 
 
 class FollowPagesTests(TestCase):
