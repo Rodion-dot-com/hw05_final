@@ -192,6 +192,7 @@ class CommentFormsTests(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        super().setUpClass()
         cls.author = User.objects.create_user(username='Author')
         cls.post = Post.objects.create(
             text='Тестовый пост',
