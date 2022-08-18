@@ -3,17 +3,14 @@ import tempfile
 from typing import List
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Comment, Group, Post
+from ..models import Comment, Group, Post, User
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
-
-User = get_user_model()
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
@@ -24,10 +21,7 @@ class PostFormsTests(TestCase):
     def setUpClass(cls) -> None:
         """Creates an authorized user."""
         super().setUpClass()
-        cls.guest_client = Client()
         cls.user = User.objects.create_user(username='auth')
-        cls.authorized_client = Client()
-        cls.authorized_client.force_login(cls.user)
 
     @classmethod
     def tearDownClass(cls):
@@ -49,6 +43,9 @@ class PostFormsTests(TestCase):
                 group=self.group,
             ) for i in range(posts_count)
         ])
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(PostFormsTests.user)
 
     def unexpected_posts_not_changed(self, posts_before: List[Post]) -> None:
         """
@@ -74,7 +71,7 @@ class PostFormsTests(TestCase):
         form_data = {
             'text': 'Тестовый пост',
         }
-        PostFormsTests.authorized_client.post(
+        self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
         )
@@ -114,7 +111,7 @@ class PostFormsTests(TestCase):
             'text': 'Тестовый пост, обновленный!',
             'group': new_group.id,
         }
-        PostFormsTests.authorized_client.post(
+        self.authorized_client.post(
             reverse('posts:post_edit', kwargs={'post_id': post_id}),
             data=form_data,
             folow=True,
@@ -144,7 +141,7 @@ class PostFormsTests(TestCase):
         form_data = {
             'text': 'Тестовый пост от guest_client',
         }
-        PostFormsTests.guest_client.post(
+        self.guest_client.post(
             reverse('posts:post_create'),
             data=form_data,
         )
@@ -176,7 +173,7 @@ class PostFormsTests(TestCase):
             'text': 'Тестовый текст',
             'image': uploaded,
         }
-        PostFormsTests.authorized_client.post(
+        self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
         )

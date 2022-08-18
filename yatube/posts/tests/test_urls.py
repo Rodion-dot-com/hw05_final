@@ -1,12 +1,9 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Group, Post
-
-User = get_user_model()
+from ..models import Group, Post, User
 
 
 class PostsURLTests(TestCase):
@@ -27,13 +24,13 @@ class PostsURLTests(TestCase):
             author=cls.author,
             group=cls.group,
         )
+        cls.user = User.objects.create_user(username='HasNoName')
 
     def setUp(self) -> None:
         """Creates users for tests."""
         self.guest_client = Client()
-        self.user = User.objects.create_user(username='HasNoName')
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.authorized_client.force_login(PostsURLTests.user)
         self.authorized_client_author = Client()
         self.authorized_client_author.force_login(PostsURLTests.author)
 

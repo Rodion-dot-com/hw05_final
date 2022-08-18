@@ -1,9 +1,6 @@
-from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import MAX_NUMBER_CHARS_IN_POST_PRESENTATION, Group, Post
-
-User = get_user_model()
+from ..models import MAX_NUMBER_CHARS_IN_POST_PRESENTATION, Group, Post, User
 
 
 class PostModelTests(TestCase):

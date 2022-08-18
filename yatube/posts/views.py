@@ -4,7 +4,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import cache_page
 
 from . import forms
-from .models import Follow, Group, Post, User
+from .models import (MAX_NUMBER_CHARS_IN_POST_PRESENTATION, Follow, Group,
+                     Post, User)
 from .paginator import split_into_pages
 
 MAX_SAMPLE_SIZE = 10
@@ -63,12 +64,10 @@ def profile(request: HttpRequest, username: str) -> HttpResponse:
     post_list = author.posts.select_related('author', 'group')
     page_obj = split_into_pages(request, post_list, MAX_SAMPLE_SIZE)
 
-    following = False
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
-            user=request.user,
-            author=author
-        ).exists()
+    following = (
+        request.user.is_authenticated
+        and Follow.objects.filter(user=request.user, author=author).exists()
+    )
 
     context = {
         'author': author,
@@ -91,7 +90,7 @@ def post_detail(request: HttpRequest, post_id: int) -> HttpResponse:
     template = 'posts/post_detail.html'
 
     post = get_object_or_404(Post, id=post_id)
-    text_in_title = post.__str__()
+    text_in_title = post.text[:MAX_NUMBER_CHARS_IN_POST_PRESENTATION]
     count = post.author.posts.count()
 
     is_author = (request.user.id == post.author.id)
@@ -177,10 +176,11 @@ def add_comment(request: HttpRequest, post_id: int) -> HttpResponse:
         post_id (int): Pk to search in the post table.
     """
     form = forms.CommentForm(request.POST or None)
+    post = get_object_or_404(Post, id=post_id)
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
-        comment.post = get_object_or_404(Post, id=post_id)
+        comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
 
@@ -223,5 +223,7 @@ def profile_unfollow(request: HttpRequest, username: str) -> HttpResponse:
     """Unsubscribes the user from the author by the specified username."""
     author = get_object_or_404(User, username=username)
 
-    Follow.objects.filter(user=request.user, author=author).delete()
+    subscriptions = Follow.objects.filter(user=request.user, author=author)
+    if subscriptions.exists():
+        subscriptions.delete()
     return redirect('posts:profile', username=username)
