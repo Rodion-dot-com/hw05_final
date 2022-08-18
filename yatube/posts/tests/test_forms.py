@@ -19,9 +19,22 @@ class PostFormsTests(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Creates an authorized user."""
+        """Creates posts for tests."""
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            slug='test-slug',
+            description='Тестовое описание',
+        )
+        posts_count = 15
+        cls.posts = Post.objects.bulk_create([
+            Post(
+                text=f'Текстовый пост №{i}',
+                author=PostFormsTests.user,
+                group=cls.group,
+            ) for i in range(posts_count)
+        ])
 
     @classmethod
     def tearDownClass(cls):
@@ -29,20 +42,7 @@ class PostFormsTests(TestCase):
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self) -> None:
-        """Creates a group and posts for tests."""
-        self.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-slug',
-            description='Тестовое описание',
-        )
-        posts_count = 15
-        self.posts = Post.objects.bulk_create([
-            Post(
-                text=f'Текстовый пост №{i}',
-                author=PostFormsTests.user,
-                group=self.group,
-            ) for i in range(posts_count)
-        ])
+        """Creates clients for tests."""
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostFormsTests.user)
@@ -90,7 +90,7 @@ class PostFormsTests(TestCase):
         the database and does not change the rest.
         """
         posts_before = Post.objects.all()
-        old_group = self.group
+        old_group = PostFormsTests.group
         post = Post.objects.create(
             text='Тестовый пост',
             author=PostFormsTests.user,
@@ -190,15 +190,18 @@ class PostFormsTests(TestCase):
 class CommentFormsTests(TestCase):
     """Verifying the correctness of forms associated with the comment model"""
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.author = User.objects.create_user(username='Author')
+        cls.post = Post.objects.create(
+            text='Тестовый пост',
+            author=cls.author
+        )
+
     def setUp(self) -> None:
         self.guest_client = Client()
-        self.author = User.objects.create_user(username='Author')
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.author)
-        self.post = Post.objects.create(
-            text='Тестовый пост',
-            author=self.author
-        )
+        self.authorized_client.force_login(CommentFormsTests.author)
 
     def test_anonymous_adding_comment_in_db(self) -> None:
         """
@@ -210,7 +213,10 @@ class CommentFormsTests(TestCase):
             'text': 'Тестовый комментарий от guest_client',
         }
         self.guest_client.post(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
+            reverse(
+                'posts:add_comment',
+                kwargs={'post_id': CommentFormsTests.post.id}
+            ),
             data=form_data,
         )
         self.assertEqual(Comment.objects.count(), comments_count_before)
@@ -225,10 +231,13 @@ class CommentFormsTests(TestCase):
             'text': 'Тестовый комментарий от authorized_client',
         }
         self.authorized_client.post(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
+            reverse(
+                'posts:add_comment',
+                kwargs={'post_id': CommentFormsTests.post.id}
+            ),
             data=form_data
         )
         self.assertEqual(Comment.objects.count(), comments_count_before + 1)
         created_comment = Comment.objects.latest('id')
         self.assertEqual(created_comment.text, form_data['text'])
-        self.assertEqual(created_comment.author, self.author)
+        self.assertEqual(created_comment.author, CommentFormsTests.author)

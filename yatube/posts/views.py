@@ -120,7 +120,7 @@ def post_create(request: HttpRequest) -> HttpResponse:
 
     if form.is_valid():
         post = form.save(commit=False)
-        post.author = get_object_or_404(User, id=request.user.id)
+        post.author = request.user
         post.save()
         return redirect('posts:profile', username=request.user.username)
 
