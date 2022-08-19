@@ -69,10 +69,16 @@ def profile(request: HttpRequest, username: str) -> HttpResponse:
         and Follow.objects.filter(user=request.user, author=author).exists()
     )
 
+    is_author = (
+        request.user.is_authenticated
+        and request.user.username == username
+    )
+
     context = {
         'author': author,
         'count': post_list.count(),
         'following': following,
+        'is_author': is_author,
         'page_obj': page_obj,
     }
     return render(request, template, context)
