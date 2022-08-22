@@ -4,9 +4,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = ')7u7me_-g0mb#=mqd2l(9i%e)-)*cn46#kob9_4+m7fi%twju0'
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
+    'www.rodionpetproject.pythonanywhere.com',
+    'rodionpetproject.pythonanywhere.com',
     'localhost',
     '127.0.0.1',
     '[::1]',

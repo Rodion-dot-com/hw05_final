@@ -1,7 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.cache import cache_page
 
 from . import forms
 from .models import (MAX_NUMBER_CHARS_IN_POST_PRESENTATION, Follow, Group,
@@ -11,7 +10,6 @@ from .paginator import split_into_pages
 MAX_SAMPLE_SIZE = 10
 
 
-@cache_page(20, key_prefix='index_page')
 def index(request: HttpRequest) -> HttpResponse:
     """Renders the main page of the site."""
     template = 'posts/index.html'
